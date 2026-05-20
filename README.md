@@ -1,1 +1,1 @@
-# CSC
+# Claude Sandbox Controller (CSC)
