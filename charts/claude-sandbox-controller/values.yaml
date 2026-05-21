@@ -1,0 +1,63 @@
+# Default values for claude-sandbox-controller.
+
+replicaCount: 1
+
+image:
+  # Controller-manager image.
+  repository: ghcr.io/waynehoggett/csc-controller
+  tag: ""  # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+# Default images injected into ClaudeEnvironment workloads. The controller uses
+# webhookHandler as the default when a ClaudeEnvironment omits a handler image;
+# worker is referenced by docs/samples (each CR sets its own workerImage).
+images:
+  worker: ghcr.io/waynehoggett/csc-worker:0.1.0
+  webhookHandler: ghcr.io/waynehoggett/csc-webhook-handler:0.1.0
+
+imagePullSecrets: []
+
+# KEDA integration. CSC never installs KEDA itself (install it separately:
+# `helm install keda kedacore/keda -n keda --create-namespace`).
+# When enabled, the controller reconciles ScaledObject/TriggerAuthentication
+# for AlwaysOn ClaudeEnvironments — this requires KEDA's CRDs to be present.
+keda:
+  enabled: true
+
+leaderElection:
+  enabled: true
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Extra args appended to the controller-manager.
+extraArgs: []

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: claude-sandbox-controller
+description: A Kubernetes controller for Anthropic self-hosted sandboxes (CSC).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - anthropic
+  - claude
+  - managed-agents
+  - sandbox
+  - keda
+home: https://github.com/waynehoggett/csc
+sources:
+  - https://github.com/waynehoggett/csc
+maintainers:
+  - name: waynehoggett

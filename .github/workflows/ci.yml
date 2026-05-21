@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, generate-check, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Verify generated artifacts are up to date
+        run: |
+          make manifests generate install-manifest
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Generated files are out of date. Run 'make manifests generate install-manifest' and commit."
+            git --no-pager diff
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Unit tests
+        run: go test ./... -coverprofile cover.out
+
+      - name: Compile tagged suites
+        run: |
+          go vet -tags integration ./test/integration/...
+          go vet -tags e2e ./test/e2e/...
+
+  helm:
+    name: Helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint charts/claude-sandbox-controller
+      - run: helm template csc charts/claude-sandbox-controller --namespace claude-system >/dev/null
+
+  images:
+    name: Build images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build controller image
+        run: docker build -t csc-controller:ci -f Dockerfile .
+      - name: Build webhook-handler image
+        run: docker build -t csc-webhook-handler:ci -f images/webhook-handler/Dockerfile .
+      - name: Build worker image
+        run: docker build -t csc-worker:ci -f images/worker/Dockerfile images/worker
+
+  e2e:
+    name: E2E on kind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: csc-e2e
+      - name: Install KEDA
+        run: |
+          helm repo add kedacore https://kedacore.github.io/charts
+          helm repo update
+          helm install keda kedacore/keda -n keda --create-namespace --wait
+      - name: Build and load controller image
+        run: |
+          docker build -t csc-controller:e2e -f Dockerfile .
+          kind load docker-image csc-controller:e2e --name csc-e2e
+      - name: Deploy CSC
+        run: |
+          make install-manifest
+          # Point the manager Deployment at the locally-built image.
+          sed -i 's#ghcr.io/waynehoggett/csc-controller:latest#csc-controller:e2e#' manifests/install.yaml
+          kubectl apply -f manifests/install.yaml
+          kubectl -n claude-system rollout status deploy/csc-controller-manager --timeout=120s
+      - name: Run e2e
+        run: go test -tags e2e ./test/e2e/... -v

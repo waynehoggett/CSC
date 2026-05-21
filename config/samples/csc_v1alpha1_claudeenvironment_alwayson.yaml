@@ -1,0 +1,21 @@
+apiVersion: csc.io/v1alpha1
+kind: ClaudeEnvironment
+metadata:
+  name: prod
+  namespace: claude-system
+spec:
+  environmentId: env_abc123
+  environmentKeySecretRef:
+    name: prod-env-key
+    key: environment-key
+  mode: AlwaysOn
+  workerImage: ghcr.io/waynehoggett/csc-worker:v0.1.0
+  alwaysOn:
+    minReplicas: 0
+    maxReplicas: 5
+    workdir: /workspace
+    scaling:
+      orgApiKeySecretRef:
+        name: anthropic-org-key
+        key: api-key
+      targetQueueDepth: 1

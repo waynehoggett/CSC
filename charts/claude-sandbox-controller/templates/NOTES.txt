@@ -1,0 +1,17 @@
+claude-sandbox-controller {{ .Chart.AppVersion }} is installed in namespace {{ .Release.Namespace }}.
+
+Next steps:
+
+1. (AlwaysOn mode) Ensure KEDA is installed:
+     helm install keda kedacore/keda -n keda --create-namespace
+
+2. Create your credential Secrets, e.g.:
+     kubectl -n {{ .Release.Namespace }} create secret generic prod-env-key \
+       --from-literal=environment-key=sk-ant-oat01-...
+     kubectl -n {{ .Release.Namespace }} create secret generic anthropic-org-key \
+       --from-literal=api-key=sk-ant-api03-...
+
+3. Apply a ClaudeEnvironment (see docs/getting-started-alwayson.md).
+
+Verify the controller:
+  kubectl -n {{ .Release.Namespace }} get deploy {{ include "csc.fullname" . }}-controller-manager

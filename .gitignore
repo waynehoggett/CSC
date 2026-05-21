@@ -1,0 +1,10 @@
+# Local tool binaries (installed via `make controller-gen`/`make kustomize`).
+/bin/
+
+# Build output.
+/cover.out
+*.out
+
+# Editor/OS noise.
+.DS_Store
+*.swp

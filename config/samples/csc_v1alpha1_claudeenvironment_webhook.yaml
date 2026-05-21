@@ -1,0 +1,20 @@
+apiVersion: csc.io/v1alpha1
+kind: ClaudeEnvironment
+metadata:
+  name: prod
+  namespace: claude-system
+spec:
+  environmentId: env_abc123
+  environmentKeySecretRef:
+    name: prod-env-key
+    key: environment-key
+  mode: Webhook
+  workerImage: ghcr.io/waynehoggett/csc-worker:v0.1.0
+  webhook:
+    signingKeySecretRef:
+      name: prod-webhook-signing
+      key: signing-key
+    ingress:
+      enabled: true
+      host: claude-webhook.example.com
+    ttlSecondsAfterFinished: 600
